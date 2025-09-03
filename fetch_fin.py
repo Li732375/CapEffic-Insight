@@ -28,7 +28,7 @@ def fetch_html(year, stock_code, season, table_index):
     tree = html.fromstring(res.text)
     table = tree.xpath('//div[@class="container"]/div[@class="content"]/table[1]')[table_index]
 
-    # 建立代碼與名稱字典，兩者指向的值相同
+    # 建立代號與名稱字典，兩者指向的值相同
     data_by_code = {}
     data_by_name = {}
 
@@ -36,6 +36,7 @@ def fetch_html(year, stock_code, season, table_index):
     for tr in table.xpath('.//tr'):
         cells = [td.text_content().strip() for td in tr.xpath('./td')]
         if cells and len(cells) > 2:
+            # 第一欄若沒代號則跳過
             if not cells[0]:
                 continue
             
