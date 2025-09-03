@@ -7,11 +7,13 @@ from datetime import datetime
 STOCK_CODE = "2330"  # 台股股票代號
 TARGET_KEYS = ["現金及約當現金", "1100"]  # 目標會計代號或名稱
 
+# 提取中文名稱的函式
 def extract_chinese(text):
     # 保留中文，排除英文、空格或其他符號
     match = re.match(r'([\u4e00-\u9fff]+)', text)
     return match.group(1) if match else text.strip()
 
+# 抓取 IFRSs 後的財報資料
 def fetch_html_with_IFRSs_after(year, stock_code, season, table_index):
     '''
     table_index:
@@ -58,6 +60,8 @@ def fetch_html_with_IFRSs_after(year, stock_code, season, table_index):
                 data[name] = value
 
     return data
+
+# 抓取 IFRSs 前的財報資料
 
 if __name__ == "__main__":
     current_year = datetime.now().year
