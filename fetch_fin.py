@@ -5,13 +5,14 @@ from datetime import datetime
 
 
 STOCK_CODE = "2330"  # 台股股票代號
+TARGET_KEYS = ["現金及約當現金", "1100"]  # 目標會計代號或名稱
 
 def extract_chinese(text):
     # 保留中文，排除英文、空格或其他符號
     match = re.match(r'([\u4e00-\u9fff]+)', text)
     return match.group(1) if match else text.strip()
 
-def fetch_html(year, stock_code, season, table_index):
+def fetch_html_with_IFRSs_after(year, stock_code, season, table_index):
     '''
     table_index:
     資產負債表:1
@@ -22,15 +23,14 @@ def fetch_html(year, stock_code, season, table_index):
     res = requests.get(url)
     if res.status_code != 200:
         print(f"網站資料請求失敗或該資料尚不存在，狀態碼：{res.status_code}")
-        return None, None
+        return None
     
     res.encoding = "big5-hkscs"
     tree = html.fromstring(res.text)
     table = tree.xpath('//div[@class="container"]/div[@class="content"]/table[1]')[table_index]
 
     # 建立代號與名稱字典，兩者指向的值相同
-    data_by_code = {}
-    data_by_name = {}
+    data = {}
 
     # 解析表格內容
     for tr in table.xpath('.//tr'):
@@ -52,20 +52,35 @@ def fetch_html(year, stock_code, season, table_index):
             
             code = cells[0]
             
-            # 建立字典
-            data_by_code[code] = value
-            data_by_name[name] = value
+            # 如果是目標代號或名稱才收集
+            if code in TARGET_KEYS or name in TARGET_KEYS:
+                data[code] = value
+                data[name] = value
 
-    return data_by_code, data_by_name
+    return data
 
 if __name__ == "__main__":
     current_year = datetime.now().year
+    # 建立歷年資料字典
+    historical_data = {key: [] for key in TARGET_KEYS}
 
-    for year in range(102 + 1996, current_year):
+    # 抓取 IFRSs 前(民國101年(2012)(含)的資料)
+
+    # 抓取 IFRSs 後(民國102年(2013)到目前的資料)
+    for year in range(102 + 1911, current_year):
         for season in [1, 2, 3, 4]:
             for type in [1, 2, 3]:
-                data_by_code, data_by_name = fetch_html(year, 
-                                                        STOCK_CODE, 
-                                                        season, 
-                                                        type)
-    
+                data = fetch_html_with_IFRSs_after(year, 
+                                                   STOCK_CODE, 
+                                                   season, 
+                                                   type)
+                
+                # 依序填入資料
+                if data:
+                    for key in TARGET_KEYS:
+                        historical_data[key].append(data[key])
+                else:
+                    # 抓取失敗時，用 None 填補
+                    for key in TARGET_KEYS:
+                        historical_data[key].append(None)
+        
